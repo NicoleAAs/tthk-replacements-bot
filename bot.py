@@ -225,10 +225,9 @@ class SQL:
             sendstatus = row['sendStatus']
             if sendStatus == 1:
                 query = '''UPDATE `users` SET `sendStatus`=0 WHERE `vkid`='%s' '''  # Updating statud of daily send
-                cursor.execute(pymysql.escape_string(sql), (vkid,))
             else:
                 query = '''UPDATE `users` SET `sendStatus`=1 WHERE `vkid`='%s' '''
-                cursor.execute(pymysql.escape_string(sql), (vkid,))
+            cursor.execute(pymysql.escape_string(sql), (vkid,))
             connection.commit()
             cursor.close()
 
