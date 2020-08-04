@@ -15,7 +15,8 @@ from vk_api.utils import get_random_id
 
 class Server:
 
-    def __init__(self, api_token):
+    def __init__(self):
+        access_token = os.environ["ACCESS_TOKEN"]
         self.vk = vk_api.VkApi(token=api_token)
         self.longpoll = VkLongPoll(self.vk)  # API, that makes possible get messages.
         self.bot = Bot(self.vk)
@@ -375,16 +376,19 @@ class COVID:
 
 
 class Sender:
-    def __init__(self, api_token):
+    def __init__(self):
+        access_token = os.environ["ACCESS_TOKEN"]
         self.sql = SQL()
         self.c = Changes()
         self.vk = vk_api.VkApi(token=api_token)
         self.bot = Bot(vk=self.vk)
 
     async def start(self):
+        print("Sender waiting.")
         t = datetime.datetime.now()
         t = t.hour, t.month, t.day
-        if t == (5, 0, 0):
+        wd = t.weekday()
+        if t == (5, 0, 0) and wd not in [5, 6]:
             print("Sender was started.")
             list = self.getSenderList()
             for i in list:
@@ -417,9 +421,8 @@ class Sender:
         return None
 
 
-access_token = os.environ["ACCESS_TOKEN"]
-server = Server(access_token)  # Access token for VKApi
-sender = Sender(access_token)
+server = Server()  # Access token for VKApi
+sender = Sender()
 botloop = asyncio.get_event_loop()
 botloop.run_until_complete(server.start())
 senderloop = asyncio.get_event_loop()
