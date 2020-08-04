@@ -421,9 +421,7 @@ class Sender:
         return None
 
 
-server = Server()  # Access token for VKApi
+server = Server()
 sender = Sender()
-botloop = asyncio.get_event_loop()
-botloop.run_until_complete(server.start())
-senderloop = asyncio.get_event_loop()
-senderloop.run_until_complete(sender.start())
+asyncio.run(server.start())
+asyncio.run(sender.start())
