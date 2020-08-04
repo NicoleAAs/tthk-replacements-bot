@@ -1,7 +1,7 @@
+import _thread
 import datetime
 import os
 import re
-from threading import Thread
 
 import pymysql
 import requests
@@ -422,7 +422,5 @@ class Sender:
 access_token = os.environ["ACCESS_TOKEN"]
 server = Server(access_token)
 sender = Sender(access_token)
-bot = Thread(target=server.start())
-send = Thread(target=sender.start())
-bot.start()
-send.start()
+_thread.start_new_thread(server.start())
+_thread.start_new_thread(sender.start())
