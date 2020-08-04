@@ -1,4 +1,6 @@
 # Connecting vk_api
+# Multi-threading
+import asyncio
 # Connecting time tools
 import datetime
 # Connecting tools of deploy
@@ -17,10 +19,6 @@ from vk_api.longpoll import VkLongPoll, VkEventType
 from vk_api.utils import get_random_id
 
 
-# Multi-threading TO-DO
-# import logging
-# import threading
-
 class Server:
 
     def __init__(self, api_token):
@@ -32,7 +30,7 @@ class Server:
         self.writeweekday = []
         self.writedate = []
 
-    def start(self):
+    async def start(self):
         print("Bot successfully deployed and started.")  # Console message when bot deployed.
         k = Keyboard()
         tc = TimeCatcher()
@@ -324,6 +322,7 @@ class Changes:
 
     def makeChanges(self, data):
         tc = TimeCatcher()
+        self.vk = vk_api.VkApi(token=api_token)
         changes = self.parseChanges()  # Changes in array from the school website
         changeList = []
         if data[-3:] in tc.getGroupList():  # Group for 4 years (like 2017-2020)
@@ -338,7 +337,10 @@ class Changes:
             return f"Для группы 🦆 {data} на данный момент изменений в расписании нет."
         if data[-4:] == str(datetime.date.today().year):
             data = re.split(r':\s', data)
-            data = data[1]
+            if len(data) > 1:
+                data = data[1]
+            else:
+                data = data[0]
             for line in changes:
                 if line[1] == data:
                     changeList = self.makeChanges(line, False)
@@ -378,6 +380,52 @@ class COVID:
         raise ValueError from None
 
 
+class Sender:
+    def __init__(self):
+        self.sql = SQL()
+        self.bot = Bot()
+        self.c = Changes()
+
+    async def start(self):
+        t = datetime.datetime.now()
+        t = t.hour, t.month, t.day
+        if t == (5, 0, 0):
+            print("Sender was started.")
+            list = self.getSenderList()
+            for i in list:
+                changes = makeSend(list[0], list[1])
+                if changes is not None:
+                    self.bot.sendMsg(vkid=list[0], msg=changes)
+
+    def getSenderList(self):
+        conn = self.sql.getConnection()
+        with conn.cursor() as cursor:  # Getting user's group at school from database
+            cursor.execute("SELECT `vkid`, `thkruhm` FROM `users` WHERE `sendStatus` = 1")
+            row = cursor.fetchall()
+            cursor.close()
+        conn.close()
+        list = row['vkid', 'thkruhm']
+        return list
+
+    def makeSend(self, vkid, group):
+        changes = self.c.parseChanges()
+        for line in changes:
+            if line[2].lower() in group:
+                changeList = self.makeChanges(line, True)  # Takes converted lines of changes from makeChanges func
+        if len(changeList) > 0:
+            userfname = (vk.method('users.get', {'user_ids': vkid, 'fields': 'first_name'})[0])["first_name"]
+            refChanges = f"Доброе утро, {userfname}!\n" \
+                         f"Для группы 🦆 {group} на данный момент следующие изменения в расписании:\n"  # Head of the message
+            for i in changeList:
+                refChanges += f"{i}\n"
+            return refChanges
+        return None
+
+
 access_token = os.environ["ACCESS_TOKEN"]
 server = Server(access_token)  # Access token for VKApi
-server.start()
+sender = Sender()
+botloop = asyncio.get_event_loop()
+botloop.run_forever(server.start())
+senderloop = asyncio.get_evet_loop()
+senderloop.run_forever(sender.start())
