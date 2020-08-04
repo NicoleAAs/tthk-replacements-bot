@@ -14,7 +14,8 @@ from vk_api.utils import get_random_id
 
 class Server:
 
-    def __init__(self, api_token):
+    def __init__(self):
+        api_token = os.environ["ACCESS_TOKEN"]
         self.vk = vk_api.VkApi(token=api_token)
         self.longpoll = VkLongPoll(self.vk)  # API, that makes possible get messages.
         self.bot = Bot(self.vk)
@@ -373,6 +374,5 @@ class COVID:
         raise ValueError from None
 
 
-access_token = os.environ["ACCESS_TOKEN"]
-server = Server(access_token)
+server = Server()
 server.start()
