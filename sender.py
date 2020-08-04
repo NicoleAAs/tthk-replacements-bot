@@ -41,8 +41,7 @@ class Sender:
             row = cursor.fetchall()
             cursor.close()
         conn.close()
-        list = row['vkid', 'thkruhm']
-        return list
+        return row['vkid', 'thkruhm']
 
     def makeSend(self, vkid, group):
         changes = self.c.parseChanges()
