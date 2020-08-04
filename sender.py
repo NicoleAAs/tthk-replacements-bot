@@ -1,111 +1,64 @@
+import datetime
 import os
-import random
-import time
 
-import parse
-import pymysql
-import requests
 import vk_api
-from bs4 import BeautifulSoup
-from pymysql.cursors import DictCursor
 
-print("Sender launched")
+from bot import SQL, Changes, Bot
+import datetime
+import os
 
-mysql_l = os.environ['MYSQL_LOGIN']
-mysql_p = os.environ["MYSQL_PASS"]
+import vk_api
+
+from bot import SQL, Changes, Bot
+
+
+class Sender:
+    def __init__(self, api_token):
+        self.mysql_l = os.environ['MYSQL_LOGIN']
+        self.mysql_p = os.environ["MYSQL_PASS"]  # Getting login and password from service there bot is deployed
+        self.sql = SQL()
+        self.c = Changes()
+        self.vk = vk_api.VkApi(token=api_token)
+        self.bot = Bot(vk=self.vk)
+
+    def start(self):
+        print("Sender waiting.")
+        t = datetime.datetime.now()
+        t = t.hour, t.month, t.day
+        wd = t.weekday()
+        if t == (5, 0, 0) and wd not in [5, 6]:
+            print("Sender was started.")
+            list = self.getSenderList()
+            for i in list:
+                changes = self.makeSend(list[0], list[1])
+                if changes is not None:
+                    self.bot.sendMsg(vkid=list[0], msg=changes)
+
+    def getSenderList(self):
+        conn = self.sql.getConnection()
+        with conn.cursor() as cursor:  # Getting user's group at school from database
+            cursor.execute("SELECT `vkid`, `thkruhm` FROM `users` WHERE `sendStatus` = 1")
+            row = cursor.fetchall()
+            cursor.close()
+        conn.close()
+        list = row['vkid', 'thkruhm']
+        return list
+
+    def makeSend(self, vkid, group):
+        changes = self.c.parseChanges()
+        for line in changes:
+            if line[2].lower() in group:
+                changeList = self.makeChanges(line, True)  # Takes converted lines of changes from makeChanges func
+        if len(changeList) > 0:
+            userfname = (self.vk.method('users.get', {'user_ids': vkid, 'fields': 'first_name'})[0])["first_name"]
+            refChanges = f"Доброе утро, {userfname}!\n" \
+                         f"Для группы 🦆 {group} на данный момент следующие изменения в расписании:\n"  # Head of the message
+            for i in changeList:
+                refChanges += f"{i}\n"
+            return refChanges
+        return None
+
+
 access_token = os.environ["ACCESS_TOKEN"]
-vk = vk_api.VkApi(token=access_token)
-
-
-def write_msg(user_id, random_id, message):
-    vk.method('messages.send', {'user_id': user_id, 'random_id': random_id, 'message': message})
-
-def parsepage(table):
-    muudatused = []
-    for item in table:
-        my_table = item
-        rows = my_table.find_all('tr')
-        for row in rows:
-            muudatus = []
-            cells = row.find_all('td')
-            for cell in cells:
-                if cell.text not in ["\xa0", "Kuupäev", "Rühm", "Tund", "Õpetaja", "Ruum"]:
-                    data = cell.text
-                    muudatus.append(data)
-            if muudatus != []:
-                muudatused.append(muudatus)
-    return muudatused
-
-def openfromfile(usergroup):
-    connection = pymysql.connect(
-        host='eu-cdbr-west-02.cleardb.net',
-        user=mysql_l,
-        password=mysql_p,
-        db='heroku_0ccfbccd1823b55',
-        cursorclass=DictCursor)
-    with connection.cursor() as cursor:
-        cursor.execute("""SELECT vkid, thkruhm FROM USERS WHERE `sendStatus` = '1';""")
-        row = cursor.fetchall()
-        for i in row:
-            usergroup[i['vkid']] = i['thkruhm']
-    cursor.close()
-    connection.close()
-    return usergroup
-
-def makemuudatused(i, forshow):
-    if len(i) == 6:
-        forshow.append(f"🗓 {i[0]} Дата: {i[1]}\n🦆 Группа: {i[2]} ⏰ Урок: {i[3]} \n👨‍🏫 Преподаватель: {i[4]}\nКабинет: {i[5]}\n")
-    elif len(i) > 2 and i[3].lower() in "jääb ära":
-        forshow.append(f"🗓 {i[0]} Дата: {i[1]}\n🦆 {i[2]}\n❌ Не состоится\n")
-    elif len(i) > 4 and i[4].lower() in "jääb ära":
-        forshow.append(f"🗓 {i[0]} Дата: {i[1]}\n🦆 Группа: {i[2]} ⏰ Урок: {i[3]}\n❌ Не состоится\n")
-    elif len(i) > 4 and i[4].lower() in "söögivahetund":
-        forshow.append(f"🗓 {i[0]} Дата: {i[1]}\n🦆 Группа: {i[2]}\n ⏰ Урок: {i[3]}\n🆒 Обеденный перерыв\n")
-    elif len(i) > 5 and i[5].lower() in "iseseisev töö kodus":
-        forshow.append(f"🗓 {i[0]} Дата: {i[1]}\n🦆 Группа: {i[2]} ⏰ Урок: {i[3]}\n🏠 Самостоятельная работа дома\n")
-    elif len(i) > 5 and i[5].lower() in "iseseisev töö":
-        forshow.append(f"🗓 {i[0]} Дата: {i[1]}\n🦆 Группа: {i[2]} ⏰ Урок: {i[3]}\n📋 Самостоятельная работа\n")
-    elif len(i) > 5 and i[5].lower() in ["", " "]:
-        forshow.append(f"🗓 {i[0]} Дата: {i[1]}\n🦆 Группа: {i[2]} ⏰ Урок: {i[3]}\n👨‍🏫 Преподаватель: {i[4]}\n")
-    else:
-        forshow.append(f"🗓 В {i[0]} Дата: {i[1]}\n🦆 Группа: {i[2]} ⏰ Урок: {i[3]}\n")
-    return forshow
-
-def getmuudatused(setgroup, user, justtable):
-    forshow = []
-    muudatused = parsepage(justtable)
-    for i in muudatused:
-        print(i)
-        if setgroup.lower() in i[2].lower():
-            makemuudatused(i, forshow)
-    if forshow:
-        userfname = (vk.method('users.get', {'user_ids': user, 'fields': 'first_name'})[0])["first_name"]
-        kogutunniplaan = f"Доброе утро, {userfname}! Для группы 🦆 {setgroup} на данный момент следующие изменения в расписании:\n"
-        for w in forshow:
-            kogutunniplaan += f"{w}\n"
-        write_msg(user, (random.getrandbits(31) * random.choice([-1, 1])), kogutunniplaan)
-
-def sendeveryday(justtable):
-    usergroup = {}
-    usergroup = openfromfile(usergroup)
-    print("Запускаю рассылку:")
-    print(time.strftime("%H:%M:%S"))
-    for i in usergroup.keys():
-        print(i)
-        covid = parse.getdata()
-        write_msg(i, (random.getrandbits(31) * random.choice([-1, 1])),
-                  f"🦠 COVID-19 в Эстонии:\n☣ {covid[0]} случаев заражения из 🧪 {covid[1]} тестов\n"
-                  f"😷 {covid[5]} болеет на данный момент и 💉 {covid[2]} выздоровели\n☠ {covid[3]} человек умерло.\n\n"
-                  f"⚠️В общественнах местах разрешено находится лишь вдвоём и держать дистанцию 2 метра от других людей. ⚠️"
-                  f"TTHK закрыт с 16 марта, в связи с чрезвычайным положением в Эстонской Республике.")
-
-
-while True:
-    if time.strftime("%H:%M:%S", time.localtime()) == '12:30:00':
-        r = requests.get('http://www.tthk.ee/tunniplaani-muudatused/')
-        html_content = r.text
-        soup = BeautifulSoup(html_content, 'html.parser')
-        justtable = soup.findChildren('table')
-        sendeveryday(justtable)
-    time.sleep(1.1)
-    continue
+sender = Sender(access_token)
+sender.start()
