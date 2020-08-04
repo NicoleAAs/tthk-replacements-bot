@@ -317,7 +317,6 @@ class Changes:
     def makeChanges(self, data):
         api_token = os.environ["ACCESS_TOKEN"]
         tc = TimeCatcher()
-        self.vk = vk_api.VkApi(token=api_token)
         changes = self.parseChanges()  # Changes in array from the school website
         changeList = []
         if data[-3:] in tc.getGroupList():  # Group for 4 years (like 2017-2020)
