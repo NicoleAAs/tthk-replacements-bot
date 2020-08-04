@@ -375,11 +375,11 @@ class COVID:
 
 
 class Sender:
-    def __init__(self):
+    def __init__(self, api_token):
         self.sql = SQL()
         self.bot = Bot()
         self.c = Changes()
-        self.longpoll = VkLongPoll(self.vk)  # API, that makes possible get messages.
+        self.vk = vk_api.VkApi(token=api_token)
 
     async def start(self):
         t = datetime.datetime.now()
@@ -419,7 +419,7 @@ class Sender:
 
 access_token = os.environ["ACCESS_TOKEN"]
 server = Server(access_token)  # Access token for VKApi
-sender = Sender()
+sender = Sender(access_token)
 botloop = asyncio.get_event_loop()
 botloop.run_forever(server.start())
 senderloop = asyncio.get_evet_loop()
