@@ -379,6 +379,7 @@ class Sender:
         self.sql = SQL()
         self.bot = Bot()
         self.c = Changes()
+        self.longpoll = VkLongPoll(self.vk)  # API, that makes possible get messages.
 
     async def start(self):
         t = datetime.datetime.now()
@@ -407,7 +408,7 @@ class Sender:
             if line[2].lower() in group:
                 changeList = self.makeChanges(line, True)  # Takes converted lines of changes from makeChanges func
         if len(changeList) > 0:
-            userfname = (vk.method('users.get', {'user_ids': vkid, 'fields': 'first_name'})[0])["first_name"]
+            userfname = (self.vk.method('users.get', {'user_ids': vkid, 'fields': 'first_name'})[0])["first_name"]
             refChanges = f"Доброе утро, {userfname}!\n" \
                          f"Для группы 🦆 {group} на данный момент следующие изменения в расписании:\n"  # Head of the message
             for i in changeList:
