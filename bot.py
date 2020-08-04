@@ -1,7 +1,7 @@
-import asyncio
 import datetime
 import os
 import re
+from threading import Thread
 
 import pymysql
 import requests
@@ -15,8 +15,7 @@ from vk_api.utils import get_random_id
 
 class Server:
 
-    def __init__(self):
-        api_token = os.environ["ACCESS_TOKEN"]
+    def __init__(self, api_token):
         self.vk = vk_api.VkApi(token=api_token)
         self.longpoll = VkLongPoll(self.vk)  # API, that makes possible get messages.
         self.bot = Bot(self.vk)
@@ -25,7 +24,7 @@ class Server:
         self.writeweekday = []
         self.writedate = []
 
-    async def start(self):
+    def start(self):
         print("Bot successfully deployed and started.")  # Console message when bot deployed.
         k = Keyboard()
         tc = TimeCatcher()
@@ -376,14 +375,13 @@ class COVID:
 
 
 class Sender:
-    def __init__(self):
-        api_token = os.environ["ACCESS_TOKEN"]
+    def __init__(self, api_token):
         self.sql = SQL()
         self.c = Changes()
         self.vk = vk_api.VkApi(token=api_token)
         self.bot = Bot(vk=self.vk)
 
-    async def start(self):
+    def start(self):
         print("Sender waiting.")
         t = datetime.datetime.now()
         t = t.hour, t.month, t.day
@@ -421,7 +419,10 @@ class Sender:
         return None
 
 
-server = Server()
-sender = Sender()
-asyncio.run(server.start())
-asyncio.run(sender.start())
+access_token = os.environ["ACCESS_TOKEN"]
+server = Server(access_token)
+sender = Sender(access_token)
+bot = Thread(target=server.start())
+send = Thread(target=sender.start())
+bot.start()
+send.start()
