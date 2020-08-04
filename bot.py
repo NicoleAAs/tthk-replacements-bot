@@ -16,7 +16,7 @@ from vk_api.utils import get_random_id
 class Server:
 
     def __init__(self):
-        access_token = os.environ["ACCESS_TOKEN"]
+        api_token = os.environ["ACCESS_TOKEN"]
         self.vk = vk_api.VkApi(token=api_token)
         self.longpoll = VkLongPoll(self.vk)  # API, that makes possible get messages.
         self.bot = Bot(self.vk)
@@ -377,7 +377,7 @@ class COVID:
 
 class Sender:
     def __init__(self):
-        access_token = os.environ["ACCESS_TOKEN"]
+        api_token = os.environ["ACCESS_TOKEN"]
         self.sql = SQL()
         self.c = Changes()
         self.vk = vk_api.VkApi(token=api_token)
