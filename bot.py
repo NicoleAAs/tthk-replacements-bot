@@ -421,6 +421,6 @@ access_token = os.environ["ACCESS_TOKEN"]
 server = Server(access_token)  # Access token for VKApi
 sender = Sender(access_token)
 botloop = asyncio.get_event_loop()
-botloop.run_forever(server.start())
-senderloop = asyncio.get_evet_loop()
-senderloop.run_forever(sender.start())
+botloop.run_until_complete(server.start())
+senderloop = asyncio.get_event_loop()
+senderloop.run_until_complete(sender.start())
