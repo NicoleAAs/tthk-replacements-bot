@@ -377,9 +377,9 @@ class COVID:
 class Sender:
     def __init__(self, api_token):
         self.sql = SQL()
-        self.bot = Bot()
         self.c = Changes()
         self.vk = vk_api.VkApi(token=api_token)
+        self.bot = Bot(vk=self.vk)
 
     async def start(self):
         t = datetime.datetime.now()
