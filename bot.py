@@ -1,14 +1,8 @@
-# Connecting vk_api
-# Multi-threading
 import asyncio
-# Connecting time tools
 import datetime
-# Connecting tools of deploy
 import os
-# Connecting parsing tools
 import re
 
-# Connecting pyMySQL
 import pymysql
 import requests
 import vk_api
